@@ -1,62 +1,95 @@
-module PID (
-	input wire u,
-	input wire y,
+module PID #(
+	parameter ANCHO = 16,
+	parameter signed [15:0] mK = 16'b1001,
+	parameter signed [15:0] Kb = 16'b0001,
+	parameter signed [15:0] KbmK = 16'b0
+)(
+	input wire [ANCHO-1:0] Uc, //Señal set point
+	input wire [ANCHO-1:0] Y, //Señal feedback
+
 	input wire clk, 
 	input wire reset,
-	input wire tick,
-	
-	output wire [15:0] P_value,
-	output wire [15:0] I_value,
-	output wire [15:0] D1_value,
-	output wire [15:0] D2_value
+	input wire start_tick,
+
+	output wire clear_acc,
+	output wire enable_acc,
+	output wire resta,
+	output wire update_out,
+
+	output wire [ANCHO-1:0] P_out,
+	output wire SO_Uc,
+	output wire SO_Y
 );
 
-	wire load_in;
-	wire shift_piso;
+	//IO PISOs
+	wire load_PISO;
+	wire shift_SO;
+	//wire SO_Uc;
+	//wire SO_Y;
 
-	wire clear_ACC;
-	wire enable_ACC;
-	wire resta;
-	wire update;
+	//IO LUTs
+	wire [1:0] lut_inP = {SO_Uc, SO_Y};
 
-	wire [1:0] lut_in;
-	assign lut_in = {u, y};
-	
-	wire [1:0] lutD2_in;
-	assign lutD2_in = {y, delay_salida[0]};
-	
-	wire [1:0] delay_salida;
-			
-	UCC UCC_i (
+	UCC UCCi (
 		.clk(clk),
 		.reset(reset),
-		.start_tick(tick),
+		.start_tick(start_tick),
+
+		.load_PISO(load_PISO),
+		.shift_SO(shift_SO),
+
+		.clear_acc(clear_acc),
+		.enable_acc(enable_acc),
+		.resta(resta),
+		.update_out(update_out)
+	);
+
+	PISO #(
+		.ANCHO(ANCHO)
+	) PISO_Uc (
+		.clk(clk),
+		.reset(reset),
 		
-		.out(
+		.load(load_PISO),
+		.shift_in(shift_SO),
+
+		.parallel_in(Uc),
+		.serial_out(SO_Uc) //AÑADIR SALIDA
+	);
 	
-	)
-			
-	Delay #(.ANCHO(2)) delay_entradas(
+	PISO #(
+		.ANCHO(ANCHO)
+	) PISO_Y (
 		.clk(clk),
 		.reset(reset),
-		.in_val(lut_in),
-		.out_val(delay_salida)
-		);
-	
-	LUTP P_action (
-		.lut_in(lut_in),
-		.lut_out(P_value)
-		);
+		
+		.load(load_PISO),
+		.shift_in(shift_SO),
 
-	LUTI I_action (
-		.lut_in(delay_salida),
-		.lut_out(I_value)
+		.parallel_in(Y),
+		.serial_out(SO_Y) //AÑADIR SALIDA
 	);
 	
-	LUTD2 D2_action (
-		.lut_in(lutD2_in),
-		.lut_out(D2_value)
+	/*
+	PISO PISO_D1 (
+		.clk(clk),
+		.reset(reset),
+		
+		.load(load_PISO),
+		.shift_in(shift_PISO),
+
+		.parallel_in(), //AÑADIR ENTRADA
+		.serial_out() //AÑADIR SALIDA
+ 	);	
+	*/
+
+	LUTP #(
+		.mK(mK),
+		.Kb(Kb),
+		.KbmK(KbmK)
+	) P_value (
+		.lut_in(lut_inP),
+		.lut_out(P_out)
 	);
-	
-	
+
 endmodule

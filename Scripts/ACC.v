@@ -5,15 +5,15 @@ module ACC #(
 	input wire reset,
 	input wire enable,
 	input wire sub,
-	input wire udpate_val,
+	input wire update_val,
 
 	input wire signed[ANCHO-1:0] val_1,
-	output reg signed[ANCHO-1:0] resultado,
+	output reg signed[ANCHO-1:0] resultado
 );
 
 	reg signed [ANCHO-1:0] val_interno;
 	
-	always @(posedge clk) clk
+	always @(posedge clk) begin
 		if (reset) begin
 			val_interno <= 0;
 		end
@@ -29,12 +29,13 @@ module ACC #(
 		end
 	end
 	
-	alwasy @(posedge clk) clk
+	always @(posedge clk) begin
 		if (reset) begin 
-			val_interno <= 0;
+			resultado <= 0;
 		end
-		else if (update_value) begin
+		else if (update_val) begin
 			resultado <= val_interno ;
 		end
-	
+	end
+
 endmodule

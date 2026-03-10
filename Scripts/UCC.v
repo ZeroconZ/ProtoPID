@@ -3,8 +3,8 @@ module UCC (
     input wire reset,        
     input wire start_tick,   
 
-    output reg load_piso,    
-    output reg piso_out,   
+    output reg load_PISO,
+    output reg shift_SO,   
     output reg clear_acc,    
     output reg enable_acc,   
     output reg resta,      
@@ -53,8 +53,8 @@ module UCC (
 
 	 //CONTROL DE MODULOS
     always @(*) begin
-        load_piso  = 0;
-        shift_piso = 0;
+        load_PISO  = 0;
+        shift_SO = 0;
         clear_acc  = 0;
         enable_acc = 0;
         resta    = 0;
@@ -66,12 +66,12 @@ module UCC (
             end
             
             LOAD: begin
-                load_piso = 1; 
+                load_PISO = 1; 
                 clear_acc = 1; 
             end
             
             CALC: begin
-                shift_piso = 1; 
+                shift_SO = 1; 
                 enable_acc = 1; 
                 
                 if (bit_count == 15) begin
