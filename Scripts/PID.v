@@ -18,18 +18,22 @@ module PID #(
 
 	output wire [ANCHO-1:0] P_out,
 	output wire SO_Uc,
-	output wire SO_Y
+	output wire SO_Y,
+	output wire SO_Delay_Uc,
+	output wire SO_Delay_Y
 );
 
 	//IO PISOs
 	wire load_PISO;
 	wire shift_SO;
-	//wire SO_Uc;
-	//wire SO_Y;
+
+	wire [ANCHO-1:0] Delay_Uc_out;
+	wire [ANCHO-1:0] Delay_Y_out;
 
 	//IO LUTs
 	wire [1:0] lut_inP = {SO_Uc, SO_Y};
 
+	//MODULO DE CONTROL CENTRAL
 	UCC UCCi (
 		.clk(clk),
 		.reset(reset),
@@ -44,6 +48,7 @@ module PID #(
 		.update_out(update_out)
 	);
 
+	//PISO DEL SETPOINT
 	PISO #(
 		.ANCHO(ANCHO)
 	) PISO_Uc (
@@ -54,9 +59,10 @@ module PID #(
 		.shift_in(shift_SO),
 
 		.parallel_in(Uc),
-		.serial_out(SO_Uc) //AÑADIR SALIDA
+		.serial_out(SO_Uc) 
 	);
 	
+	//PISO DEL FEEDBACK
 	PISO #(
 		.ANCHO(ANCHO)
 	) PISO_Y (
@@ -67,9 +73,59 @@ module PID #(
 		.shift_in(shift_SO),
 
 		.parallel_in(Y),
-		.serial_out(SO_Y) //AÑADIR SALIDA
+		.serial_out(SO_Y) 
 	);
 	
+	//DELAY DEL SETPOINT PARA LA LUT I
+	Delay #(
+		.ANCHO(ANCHO)
+	) Delay_Uc (
+		.clk(clk),
+		.reset(reset),
+		.update(update_out),
+		.in_val(Uc),
+		.out_val(Delay_Uc_out)
+	);
+	
+	//PISO DEL DELAY DEL SETPOINT
+	PISO #(
+		.ANCHO(ANCHO)
+	) PISO_Delay_Uc (
+		.clk(clk),
+		.reset(reset),
+		
+		.load(load_PISO),
+		.shift_in(shift_SO),
+
+		.parallel_in(Delay_Uc_out),
+		.serial_out(SO_Delay_Uc) 
+	);
+	
+	//DELAY DEL FEEDBACK PARA LA LUT I
+	Delay #(
+		.ANCHO(ANCHO)
+	) Delay_Y (
+		.clk(clk),
+		.reset(reset),
+		.update(update_out),
+		.in_val(Y),
+		.out_val(Delay_Y_out)
+	);
+	
+	//PISO DEL DELAY DEL FEEDBACK
+	PISO #(
+		.ANCHO(ANCHO)
+	) PISO_Delay_Y (
+		.clk(clk),
+		.reset(reset),
+		
+		.load(load_PISO),
+		.shift_in(shift_SO),
+
+		.parallel_in(Delay_Y_out),
+		.serial_out(SO_Delay_Y) 
+	);
+
 	/*
 	PISO PISO_D1 (
 		.clk(clk),
@@ -81,7 +137,7 @@ module PID #(
 		.parallel_in(), //AÑADIR ENTRADA
 		.serial_out() //AÑADIR SALIDA
  	);	
-	*/
+	
 
 	LUTP #(
 		.mK(mK),
@@ -91,5 +147,5 @@ module PID #(
 		.lut_in(lut_inP),
 		.lut_out(P_out)
 	);
-
+	*/
 endmodule
