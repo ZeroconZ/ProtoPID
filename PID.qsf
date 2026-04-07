@@ -65,4 +65,4 @@ set_global_assignment -name VERILOG_FILE Scripts/LUTD2.v
 set_global_assignment -name VERILOG_FILE Scripts/LUTD1.v
 set_global_assignment -name VERILOG_FILE Scripts/Delay.v
 set_global_assignment -name VERILOG_FILE Scripts/ACC.v
-set_global_assignment -name VECTOR_WAVEFORM_FILE Waveform5.vwf
+set_global_assignment -name VECTOR_WAVEFORM_FILE Waveform6.vwf

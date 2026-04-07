@@ -1,8 +1,17 @@
 module PID #(
 	parameter ANCHO = 16,
-	parameter signed [15:0] mK = 16'b1001,
-	parameter signed [15:0] Kb = 16'b0001,
-	parameter signed [15:0] KbmK = 16'b0
+
+	parameter signed [ANCHO-1:0] mK = 16'b0000000000000001,
+	parameter signed [ANCHO-1:0] Kb = 16'b0000000000000010,
+	parameter signed [ANCHO-1:0] KbmK = 16'b0,
+
+	parameter signed [ANCHO-1:0] mKT_Ti = 16'b0000000000000001,
+	parameter signed [ANCHO-1:0] KT_Ti =  16'b0000000000000010,
+
+	parameter signed [ANCHO-1:0] KTdN_TdmsNT =  16'b0000000000000010,
+	parameter signed [ANCHO-1:0] mKTdN_TdmsNT =  16'b0000000000000010,
+
+	parameter signed [ANCHO-1:0] Td_TdmsNT = 16'b0000000000000010
 )(
 	input wire [ANCHO-1:0] Uc, //Señal set point
 	input wire [ANCHO-1:0] Y, //Señal feedback
@@ -11,28 +20,41 @@ module PID #(
 	input wire reset,
 	input wire start_tick,
 
-	output wire clear_acc,
-	output wire enable_acc,
-	output wire resta,
-	output wire update_out,
+	output wire [ANCHO-1:0] ACC_P_res,
+	output wire [ANCHO-1:0] ACC_I_res,
+	output wire [ANCHO-1:0] ACC_D2_res,
 
+	output wire [ANCHO-1:0] I_out,
 	output wire [ANCHO-1:0] P_out,
-	output wire SO_Uc,
-	output wire SO_Y,
-	output wire SO_Delay_Uc,
-	output wire SO_Delay_Y
+	output wire [ANCHO-1:0] D2_out,
+
+	output wire SO_ACC_D2
 );
+
+	//CONTROL ACC
+	wire clear_acc;
+	wire enable_acc;
+	wire resta;
+	wire update_out;
 
 	//IO PISOs
 	wire load_PISO;
 	wire shift_SO;
+
+	wire SO_Uc;
+	wire SO_Y;
+
+	wire SO_Delay_Uc;
+	wire SO_Delay_Y;
 
 	wire [ANCHO-1:0] Delay_Uc_out;
 	wire [ANCHO-1:0] Delay_Y_out;
 
 	//IO LUTs
 	wire [1:0] lut_inP = {SO_Uc, SO_Y};
-
+	wire [1:0] lut_inI = {SO_Delay_Uc, SO_Delay_Y};
+	wire [1:0] lut_inD2 = {SO_Y, SO_Delay_Y};
+	
 	//MODULO DE CONTROL CENTRAL
 	UCC UCCi (
 		.clk(clk),
@@ -126,19 +148,7 @@ module PID #(
 		.serial_out(SO_Delay_Y) 
 	);
 
-	/*
-	PISO PISO_D1 (
-		.clk(clk),
-		.reset(reset),
-		
-		.load(load_PISO),
-		.shift_in(shift_PISO),
-
-		.parallel_in(), //AÑADIR ENTRADA
-		.serial_out() //AÑADIR SALIDA
- 	);	
-	
-
+	//ACCION PROPORCIONAL
 	LUTP #(
 		.mK(mK),
 		.Kb(Kb),
@@ -147,5 +157,70 @@ module PID #(
 		.lut_in(lut_inP),
 		.lut_out(P_out)
 	);
-	*/
+
+	ACC #(
+		.ANCHO(ANCHO)
+	) ACC_P (
+		.clk(clk),
+		.reset(reset),
+		.enable(enable_acc),
+		.sub(resta),
+		.update_val(update_out),
+		.val(P_out),
+		.resultado(ACC_P_res)
+	);
+
+	//ACCION INTEGRAL
+	LUTI #(
+		.mKT_Ti(mKT_Ti),
+		.KT_Ti(KT_Ti)
+	) I_value (
+		.lut_in(lut_inI),
+		.lut_out(I_out)
+	);
+	
+	ACC #(
+		.ANCHO(ANCHO)
+	) ACC_I (
+		.clk(clk),
+		.reset(reset),
+		.enable(enable_acc),
+		.sub(resta),
+		.update_val(update_out),
+		.val(I_out),
+		.resultado(ACC_I_res)
+	);
+
+	//ACCION DERIVATIVA
+	LUTD2 #(
+		.KTdN_TdmsNT(Td_TdmsNT),
+		.mKTdN_TdmsNT(mKTdN_TdmsNT)
+	) D2_value (
+		.lut_in(lut_inD2),
+		.lut_out(D2_out)
+	);
+
+	ACC #(
+		.ANCHO(ANCHO)
+	)
+	(
+		.clk(clk),
+		.reset(reset),
+		.enable(enable_acc),
+		.sub(resta),
+		.update_val(update_out),
+		.val(D2_out),
+		.resultado(ACC_D2_res)
+	);
+
+	PISO PISO_D1 (
+		.clk(clk),
+		.reset(reset),
+		
+		.load(load_PISO),
+		.shift_in(shift_PISO),
+
+		.parallel_in(ACC_D2_res), //AÑADIR ENTRADA
+		.serial_out(SO_ACC_D2) //AÑADIR SALIDA
+ 	);	
 endmodule
