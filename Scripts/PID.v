@@ -1,5 +1,6 @@
 module PID #(
 	parameter ANCHO = 16,
+	parameter PERIODO = 32768,
 
 	parameter signed [ANCHO-1:0] mK = 16'b0000000000000001,
 	parameter signed [ANCHO-1:0] Kb = 16'b0000000000000010,
@@ -20,9 +21,10 @@ module PID #(
 	input wire reset,
 	input wire start_tick,
 
-	output wire [ANCHO-1:0] RESULTADO_PID
+	output wire [ANCHO-1:0] RESULTADO_PID,
+	output wire PWM_pulse
 );
-
+	localparam PRUEBA = 16'b1;
 	//CONTROL ACC
 	wire clear_acc;
 	wire enable_acc;
@@ -249,6 +251,31 @@ module PID #(
 		.resultado(ACC_D1_res)
 	);
 
-	assign RESULTADO_PID = ACC_P_res + ACC_I_res + ACC_D2_res + ACC_D1_res;
+	ACC_adder #(
+    .ANCHO(ANCHO)
+	) ACC_adder (
+		.clk(clk),
+		.reset(reset),
+		.update_out(update_out),     
+		
+		.ACC_P_res(ACC_P_res),
+		.ACC_I_res(ACC_I_res),
+		.ACC_D2_res(ACC_D2_res),
+		.ACC_D1_res(ACC_D1_res),
+		
+		.RESULTADO_PID(RESULTADO_PID),
+		.RESULTADO_ready(resultado_ready)
+	);
+
+	PWM_gen #(
+		.ANCHO(ANCHO)
+	) PWM_gen (
+		.clk(clk),
+		.reset(reset),
+		.start_tick(resultado_ready),  
+		.full_speed(1'b1),
+		.RESULTADO_PID(RESULTADO_PID),
+		.PWM_out(PWM_pulse)
+	);
 
 endmodule
