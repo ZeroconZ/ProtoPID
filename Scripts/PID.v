@@ -15,21 +15,27 @@ module PID #(
 	parameter signed [ANCHO-1:0] Td_TdmsNT = 16'b0100000000000000
 )(
 	input wire [ANCHO-1:0] Uc, //Señal set point
-	input wire [ANCHO-1:0] Y, //Señal feedback
 
 	input wire clk, 
 	input wire reset,
-	input wire start_tick,
+
+	input wire clk_datos,
+	input wire ini_fin,
+	input wire bit_entrada,
 
 	output wire [ANCHO-1:0] RESULTADO_PID,
-	output wire PWM_pulse
+	output wire PWM_pulse,
+	output wire [ANCHO-1:0] Y,
+	output wire start_tick
 );
-	localparam PRUEBA = 16'b1;
+	//wire [ANCHO-1:0] Y;
+
 	//CONTROL ACC
 	wire clear_acc;
 	wire enable_acc;
 	wire resta;
 	wire update_out;
+	//wire start_tick;
 
 	//RESULTADO ACC
 	wire [ANCHO-1:0] ACC_P_res;
@@ -75,6 +81,20 @@ module PID #(
 		.enable_acc(enable_acc),
 		.resta(resta),
 		.update_out(update_out)
+	);
+
+	Sensor_receiver #(
+		.ANCHO(ANCHO)
+	) Adecuacion_feedback (
+		.clk(clk), 
+		.reset(reset),
+
+		.clk_datos(clk_datos),
+		.ini_fin(ini_fin),
+		.bit_entrada(bit_entrada),
+
+		.Y(Y),
+		.start_tick(start_tick)
 	);
 
 	//PISO DEL SETPOINT
